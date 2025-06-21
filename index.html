@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>量子運算知識探索遊戲</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            animation: fadeIn 1s ease-in;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            margin-bottom: 10px;
+        }
+
+        .game-stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px 25px;
+            color: white;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .stat-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .level-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .level-card {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 25px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .level-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .level-card:hover::before {
+            left: 100%;
+        }
+
+        .level-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255,255,255,0.3);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .level-card.completed {
+            border-color: #4ade80;
+            background: rgba(74, 222, 128, 0.2);
+        }
+
+        .level-card.locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .level-title {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .level-icon {
+            font-size: 1.5rem;
+        }
+
+        .quiz-container {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 30px;
+            color: white;
+            display: none;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .quiz-container.active {
+            display: block;
+        }
+
+        .question {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .options {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .option {
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            padding: 15px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .option:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: rgba(255,255,255,0.4);
+        }
+
+        .option.selected {
+            border-color: #60a5fa;
+            background: rgba(96, 165, 250, 0.3);
+        }
+
+        .option.correct {
+            border-color: #4ade80;
+            background: rgba(74, 222, 128, 0.3);
+        }
+
+        .option.incorrect {
+            border-color: #f87171;
+            background: rgba(248, 113, 113, 0.3);
+        }
+
+        .quiz-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s;
+        }
+
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .feedback {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 12px;
+            display: none;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .feedback.correct {
+            background: rgba(74, 222, 128, 0.2);
+            border: 1px solid #4ade80;
+            color: #dcfce7;
+        }
+
+        .feedback.incorrect {
+            background: rgba(248, 113, 113, 0.2);
+            border: 1px solid #f87171;
+            color: #fecaca;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ade80, #22c55e);
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 4px;
+        }
+
+        .simulation-area {
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .qubit-visual {
+            display: inline-block;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin: 10px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .qubit-0 {
+            background: linear-gradient(45deg, #3b82f6, #1d4ed8);
+        }
+
+        .qubit-1 {
+            background: linear-gradient(45deg, #ef4444, #dc2626);
+        }
+
+        .qubit-superposition {
+            background: linear-gradient(45deg, #8b5cf6, #7c3aed);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-50px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .achievement {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(45deg, #fbbf24, #f59e0b);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            transform: translateX(300px);
+            transition: transform 0.5s ease;
+            z-index: 1000;
+        }
+
+        .achievement.show {
+            transform: translateX(0);
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .game-stats {
+                gap: 15px;
+            }
+            
+            .stat-card {
+                padding: 10px 15px;
+            }
+            
+            .level-selector {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌌 量子運算知識探索遊戲</h1>
+            <p>探索量子世界的奧秘，掌握未來科技的核心！</p>
+        </div>
+
+        <div class="game-stats">
+            <div class="stat-card">
+                <h3 id="score">0</h3>
+                <p>總分</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="level">1</h3>
+                <p>當前關卡</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="progress">0%</h3>
+                <p>完成度</p>
+            </div>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="level-selector" id="levelSelector">
+            <div class="level-card" data-level="1">
+                <div class="level-title">
+                    <span class="level-icon">🔬</span>
+                    <span>第一關：量子基礎</span>
+                </div>
+                <p>了解量子位元與疊加態的基本概念</p>
+            </div>
+
+            <div class="level-card locked" data-level="2">
+                <div class="level-title">
+                    <span class="level-icon">🔗</span>
+                    <span>第二關：量子糾纏</span>
+                </div>
+                <p>探索量子糾纏的神秘現象</p>
+            </div>
+
+            <div class="level-card locked" data-level="3">
+                <div class="level-title">
+                    <span class="level-icon">⚡</span>
+                    <span>第三關：量子演算法</span>
+                </div>
+                <p>學習Shor與Grover演算法</p>
+            </div>
+
+            <div class="level-card locked" data-level="4">
+                <div class="level-title">
+                    <span class="level-icon">🏭</span>
+                    <span>第四關：硬體實現</span>
+                </div>
+                <p>了解量子電腦的硬體技術</p>
+            </div>
+
+            <div class="level-card locked" data-level="5">
+                <div class="level-title">
+                    <span class="level-icon">🌏</span>
+                    <span>第五關：全球發展</span>
+                </div>
+                <p>探索全球量子科技發展趨勢</p>
+            </div>
+
+            <div class="level-card locked" data-level="6">
+                <div class="level-title">
+                    <span class="level-icon">🇹🇼</span>
+                    <span>第六關：台灣量子</span>
+                </div>
+                <p>認識台灣的量子科技發展</p>
+            </div>
+        </div>
+
+        <div class="quiz-container" id="quizContainer">
+            <h2 id="quizTitle"></h2>
+            <div class="simulation-area" id="simulationArea" style="display: none;">
+                <h3>量子位元模擬器</h3>
+                <p>點擊量子位元來觀察狀態變化</p>
+                <div id="qubitDisplay"></div>
+            </div>
+            <div class="question" id="question"></div>
+            <div class="options" id="options"></div>
+            <div class="quiz-buttons">
+                <button class="btn" id="submitBtn" onclick="submitAnswer()" disabled>提交答案</button>
+                <button class="btn" id="nextBtn" onclick="nextQuestion()" style="display: none;">下一題</button>
+                <button class="btn" id="backBtn" onclick="backToLevels()">返回關卡</button>
+            </div>
+            <div class="feedback" id="feedback"></div>
+        </div>
+    </div>
+
+    <div class="achievement" id="achievement">
+        🎉 恭喜完成關卡！
+    </div>
+
+    <script>
+        let gameData = {
+            score: 0,
+            currentLevel: 1,
+            completedLevels: [],
+            currentQuestionIndex: 0,
+            selectedAnswer: null
+        };
+
+        const questions = {
+            1: [
+                {
+                    question: "量子位元(qubit)與傳統位元最大的差別是什麼？",
+                    options: [
+                        "量子位元只能是0或1",
+                        "量子位元可以同時處於0和1的疊加態",
+                        "量子位元運算速度更快",
+                        "量子位元體積更小"
+                    ],
+                    correct: 1,
+                    explanation: "量子位元的革命性在於「疊加態」，它能同時處於|0⟩和|1⟩兩種狀態的線性組合中！"
+                },
+                {
+                    question: "N個量子位元可以同時表示多少個狀態？",
+                    options: ["N個", "2N個", "N²個", "2^N個"],
+                    correct: 3,
+                    explanation: "N個量子位元可以同時表示2^N個狀態，使其資訊儲存能力呈指數級增長！"
+                },
+                {
+                    question: "Hadamard閘的作用是什麼？",
+                    options: [
+                        "翻轉量子位元狀態",
+                        "將量子位元轉換為疊加態",
+                        "測量量子位元",
+                        "連接兩個量子位元"
+                    ],
+                    correct: 1,
+                    explanation: "Hadamard閘能將處於確定狀態的量子位元轉換為|0⟩和|1⟩的均勻疊加態！"
+                }
+            ],
+            2: [
+                {
+                    question: "量子糾纏描述的是什麼現象？",
+                    options: [
+                        "量子位元的疊加態",
+                        "兩個或多個量子位元之間的神秘關聯",
+                        "量子位元的測量過程",
+                        "量子位元的退相干"
+                    ],
+                    correct: 1,
+                    explanation: "量子糾纏描述了量子位元之間超越空間的關聯性，這是實現複雜量子演算法的基礎！"
+                },
+                {
+                    question: "CNOT閘的功能是什麼？",
+                    options: [
+                        "創造疊加態",
+                        "實現量子糾纏的關鍵工具",
+                        "測量量子狀態",
+                        "防止退相干"
+                    ],
+                    correct: 1,
+                    explanation: "CNOT閘是雙位元閘，當控制位元為|1⟩時會翻轉目標位元，是實現量子糾纏的關鍵工具！"
+                }
+            ],
+            3: [
+                {
+                    question: "Shor演算法主要用於解決什麼問題？",
+                    options: [
+                        "資料庫搜尋",
+                        "質因數分解",
+                        "圖像處理",
+                        "機器學習"
+                    ],
+                    correct: 1,
+                    explanation: "Shor演算法專門用於質因數分解，能夠威脅現有的RSA加密系統！"
+                },
+                {
+                    question: "Grover演算法的時間複雜度是多少？",
+                    options: ["O(N)", "O(log N)", "O(√N)", "O(N²)"],
+                    correct: 2,
+                    explanation: "Grover演算法能將未排序資料庫搜尋的時間複雜度從O(N)降至O(√N)！"
+                }
+            ],
+            4: [
+                {
+                    question: "目前最主流的量子位元技術是什麼？",
+                    options: [
+                        "光子量子位元",
+                        "超導量子位元",
+                        "原子量子位元",
+                        "電子量子位元"
+                    ],
+                    correct: 1,
+                    explanation: "超導量子位元是目前最主流的技術，被IBM、Google等公司採用！"
+                },
+                {
+                    question: "量子退相干是什麼？",
+                    options: [
+                        "量子位元增加的過程",
+                        "量子位元失去量子特性的過程",
+                        "量子演算法的執行過程",
+                        "量子糾纏的建立過程"
+                    ],
+                    correct: 1,
+                    explanation: "量子退相干是量子位元因環境干擾而失去疊加與糾纏特性的過程，是量子計算的最大障礙！"
+                }
+            ],
+            5: [
+                {
+                    question: "IBM計劃在2029年推出的量子電腦名稱是什麼？",
+                    options: [
+                        "IBM Quantum Eagle",
+                        "IBM Quantum Starling",
+                        "IBM Quantum Falcon",
+                        "IBM Quantum Phoenix"
+                    ],
+                    correct: 1,
+                    explanation: "IBM Starling將是一台大規模容錯量子電腦，運算能力比現今高出20,000倍！"
+                },
+                {
+                    question: "IBM採用的qLDPC碼相比表面碼有什麼優勢？",
+                    options: [
+                        "運算速度更快",
+                        "所需物理量子位元減少約90%",
+                        "穩定性更高",
+                        "成本更低"
+                    ],
+                    correct: 1,
+                    explanation: "qLDPC碼相比表面碼能大幅減少約90%的物理量子位元需求，極大降低硬體開銷！"
+                }
+            ],
+            6: [
+                {
+                    question: "台灣「量子國家隊」計畫投入多少資金？",
+                    options: ["50億新台幣", "80億新台幣", "100億新台幣", "120億新台幣"],
+                    correct: 1,
+                    explanation: "台灣政府於2022年啟動為期五年、投入80億新台幣的量子國家隊計畫！"
+                },
+                {
+                    question: "中研院在2024年成功研發的量子電腦有幾個量子位元？",
+                    options: ["3位元", "5位元", "8位元", "10位元"],
+                    correct: 1,
+                    explanation: "中研院在2024年1月成功打造台灣第一台自研自製的5位元超導量子電腦！"
+                },
+                {
+                    question: "台灣在量子科技發展上的主要優勢是什麼？",
+                    options: [
+                        "人才眾多",
+                        "資金充足",
+                        "半導體產業基礎",
+                        "國際合作"
+                    ],
+                    correct: 2,
+                    explanation: "台灣憑藉其在全球半導體產業的領導地位，為量子科技發展提供堅實基礎！"
+                }
+            ]
+        };
+
+        function updateStats() {
+            document.getElementById('score').textContent = gameData.score;
+            document.getElementById('level').textContent = gameData.currentLevel;
+            const progress = (gameData.completedLevels.length / 6) * 100;
+            document.getElementById('progress').textContent = progress.toFixed(0) + '%';
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        function updateLevelCards() {
+            const levelCards = document.querySelectorAll('.level-card');
+            levelCards.forEach(card => {
+                const level = parseInt(card.dataset.level);
+                if (gameData.completedLevels.includes(level)) {
+                    card.classList.add('completed');
+                    card.classList.remove('locked');
+                } else if (level <= gameData.currentLevel) {
+                    card.classList.remove('locked');
+                } else {
+                    card.classList.add('locked');
+                }
+            });
+        }
+
+        function startLevel(level) {
+            if (level > gameData.currentLevel) return;
+            
+            gameData.currentQuestionIndex = 0;
+            document.getElementById('levelSelector').style.display = 'none';
+            document.getElementById('quizContainer').classList.add('active');
+            document.getElementById('quizTitle').textContent = `第${level}關`;
+            
+            if (level === 1) {
+                showSimulation();
+            } else {
+                hideSimulation();
+            }
+            
+            loadQuestion(level);
+        }
+
+        function showSimulation() {
+            const simulationArea = document.getElementById('simulationArea');
+            const qubitDisplay = document.getElementById('qubitDisplay');
+            simulationArea.style.display = 'block';
+            
+            qubitDisplay.innerHTML = `
+                <div class="qubit-visual qubit-0" onclick="toggleQubit(this)" title="點擊切換狀態">|0⟩</div>
+                <div class="qubit-visual qubit-superposition" onclick="toggleQubit(this)" title="疊加態">|+⟩</div>
+                <div class="qubit-visual qubit-1" onclick="toggleQubit(this)" title="點擊切換狀態">|1⟩</div>
+            `;
+        }
+
+        function hideSimulation() {
+            document.getElementById('simulationArea').style.display = 'none';
+        }
+
+        function toggleQubit(element) {
+            if (element.classList.contains('qubit-0')) {
+                element.className = 'qubit-visual qubit-superposition';
+                element.textContent = '|+⟩';
+                element.title = '疊加態';
+            } else if (element.classList.contains('qubit-superposition')) {
+                element.className = 'qubit-visual qubit-1';
+                element.textContent = '|1⟩';
+                element.title = '點擊切換狀態';
+            } else {
+                element.className = 'qubit-visual qubit-0';
+                element.textContent = '|0⟩';
+                element.title = '點擊切換狀態';
+            }
+        }
+
+        function loadQuestion(level) {
+            const levelQuestions = questions[level];
+            const currentQ = levelQuestions[gameData.currentQuestionIndex];
+            
+            document.getElementById('question').textContent = currentQ.question;
+            
+            const optionsContainer = document.getElementById('options');
+            optionsContainer.innerHTML = '';
+            
+            currentQ.options.forEach((option, index) => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'option';
+                optionDiv.textContent = option;
+                optionDiv.onclick = () => selectOption(index, optionDiv);
+                optionsContainer.appendChild(optionDiv);
+            });
+            
+            document.getElementById('submitBtn').disabled = true;
+            document.getElementById('nextBtn').style.display = 'none';
+            document.getElementById('feedback').style.display = 'none';
+            gameData.selectedAnswer = null;
+        }
+
+        function selectOption(index, element) {
+            document.querySelectorAll('.option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            element.classList.add('selected');
+            gameData.selectedAnswer = index;
+            document.getElementById('submitBtn').disabled = false;
+        }
+
+        function submitAnswer() {
+            const level = Math.ceil((gameData.currentLevel - 1) / 1) + 1;
+            const currentQ = questions[Math.min(level, 6)][gameData.currentQuestionIndex];
+            const options = document.querySelectorAll('.option');
+            const feedback = document.getElementById('feedback');
+            
+            options.forEach((option, index) => {
+                if (index === currentQ.correct) {
+                    option.classList.add('correct');
+                } else if (index === gameData.selectedAnswer) {
+                    option.classList.add('incorrect');
+                }
+                option.style.pointerEvents = 'none';
+            });
+            
+            if (gameData.selectedAnswer === currentQ.correct) {
+                feedback.className = 'feedback correct';
+                feedback.textContent = '✅ ' + currentQ.explanation;
+                gameData.score += 100;
+            } else {
+                feedback.className = 'feedback incorrect';
+                feedback.textContent = '❌ ' + currentQ.explanation;
+            }
+            
+            feedback.style.display = 'block';
+            document.getElementById('submitBtn').style.display = 'none';
+            document.getElementById('nextBtn').style.display = 'inline-block';
+            updateStats();
+        }
+
+        function nextQuestion() {
+            const level = Math.min(Math.ceil(gameData.currentLevel), 6);
+            const levelQuestions = questions[level];
+            
+            gameData.currentQuestionIndex++;
+            
+            if (gameData.currentQuestionIndex >= levelQuestions.length) {
+                completeLevel(level);
+            } else {
+                loadQuestion(level);
+            }
+        }
+
+        function completeLevel(level) {
+            if (!gameData.completedLevels.includes(level)) {
+                gameData.completedLevels.push(level);
+                gameData.score += 200;
+                showAchievement();
+            }
+            
+            if (level === gameData.currentLevel && gameData.currentLevel < 6) {
+                gameData.currentLevel++;
+            }
+            
+            updateStats();
+            updateLevelCards();
+            backToLevels();
+        }
+
+        function showAchievement() {
+            const achievement = document.getElementById('achievement');
+            achievement.classList.add('show');
+            setTimeout(() => {
+                achievement.classList.remove('show');
+            }, 3000);
+        }
+
+        function backToLevels() {
+            document.getElementById('levelSelector').style.display = 'grid';
+            document.getElementById('quizContainer').classList.remove('active');
+        }
+
+        // 初始化遊戲
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStats();
+            updateLevelCards();
+            
+            document.querySelectorAll('.level-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    const level = parseInt(this.dataset.level);
+                    if (!this.classList.contains('locked')) {
+                        startLevel(level);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
